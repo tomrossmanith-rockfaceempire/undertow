@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Undertow Tests</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; background: #04152A; color: #E8F7FF; }
+  h1 { font-size: 20px; }
+  .pass { color: #5EF2C2; } .fail { color: #FF7A6B; }
+  li { margin: 2px 0; }
+</style>
+</head>
+<body>
+<h1>Undertow validator tests</h1>
+<p id="summary">Running…</p>
+<ul id="out"></ul>
+<script src="js/prompts.js"></script>
+<script src="js/prompts-geography.js"></script>
+<script src="js/prompts-science.js"></script>
+<script src="js/prompts-nature-food.js"></script>
+<script src="js/prompts-culture.js"></script>
+<script src="js/prompts-everyday.js"></script>
+<script src="js/validate.js"></script>
+<script>
+(function () {
+  var out = document.getElementById('out');
+  var pass = 0, fail = 0;
+  var byId = {};
+  UT.PROMPTS.forEach(function (p) { byId[p.id] = p; });
+  function log(ok, msg) {
+    var li = document.createElement('li');
+    li.className = ok ? 'pass' : 'fail';
+    li.textContent = (ok ? 'PASS  ' : 'FAIL  ') + msg;
+    out.appendChild(li);
+    ok ? pass++ : fail++;
+  }
+  function acc(id, input, expect) {
+    var r = UT.validate.check(byId[id], input);
+    log(r.status === 'accepted' && r.answer.text === expect, id + ': "' + input + '" accepted as ' + expect + (r.status !== 'accepted' ? ' (got ' + r.status + ')' : r.answer.text !== expect ? ' (got ' + r.answer.text + ')' : ''));
+  }
+  function rej(id, input, part) {
+    var r = UT.validate.check(byId[id], input);
+    log(r.status === 'rejected' && (!part || (r.message || '').indexOf(part) >= 0), id + ': "' + input + '" rejected' + (part ? ' with "' + part + '"' : '') + (r.status !== 'rejected' ? ' (got ' + r.status + ')' : ''));
+  }
+
+  // Plurals
+  acc('eight-legs', 'spiders', 'Spider');
+  acc('pasta', 'shell', 'Shells');
+  acc('us-states-canada', 'Michigans', 'Michigan');
+  // Accents
+  acc('cheese', 'Gruyère', 'Gruyère');
+  acc('national-parks', 'Haleakala', 'Haleakalā');
+  acc('africa', "Côte d'Ivoire", 'Ivory Coast');
+  // Typos
+  acc('us-states-canada', 'Pensylvania', 'Pennsylvania');
+  acc('cheese', 'mozarella', 'Mozzarella');
+  acc('dinosaurs', 'Stegasaurus', 'Stegosaurus');
+  // Aliases
+  acc('countries-m', 'Burma', 'Myanmar');
+  acc('presidents', 'FDR', 'Franklin D. Roosevelt');
+  acc('single-letter-elements', 'W', 'Tungsten');
+  acc('shakespeare', 'Romeo & Juliet', 'Romeo and Juliet');
+  acc('seas', 'the Pacific', 'Pacific Ocean');
+  // Ambiguous fuzzy matches are refused
+  rej('countries-m', 'malt', 'more than one');
+  rej('africa', 'nigeri', 'more than one');
+  // Friendly near-miss messages
+  rej('eight-legs', 'octopus', 'arms, not legs');
+  rej('eight-legs', 'octapus', 'arms, not legs');
+  rej('presidents', 'Roosevelt', 'Which Roosevelt');
+  rej('dinosaurs', 'pterodactyl', 'not dinosaurs');
+  rej('three-letter-body', 'hand', 'exactly 3 letters');
+  // Echoing the question
+  rej('state-capitals', 'capital', 'part of the question');
+  // Plain wrong
+  rej('us-states-canada', 'Texas', '');
+
+  document.getElementById('summary').textContent = pass + ' passed, ' + fail + ' failed';
+  document.getElementById('summary').className = fail ? 'fail' : 'pass';
+})();
+</script>
+</body>
+</html>

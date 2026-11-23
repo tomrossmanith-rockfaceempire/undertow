@@ -1,0 +1,11 @@
+# Render Blueprint: one free Node web service running server.js.
+# In Render: New > Blueprint > pick this repository > Apply.
+services:
+  - type: web
+    name: undertow
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/ping
+    autoDeploy: true
